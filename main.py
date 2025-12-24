@@ -99,7 +99,7 @@ class GitAICommitApp(ctk.CTk):
         self.main_frame.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
         self.main_frame.grid_rowconfigure(2, weight=1)
         self.main_frame.grid_columnconfigure(0, weight=1)
-
+        
         # 1. Stats Header
         self.stats_frame = ctk.CTkFrame(self.main_frame, height=50)
         self.stats_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
@@ -110,12 +110,14 @@ class GitAICommitApp(ctk.CTk):
         self.lbl_tokens = ctk.CTkLabel(self.stats_frame, text="Tokens: 0")
         self.lbl_tokens.pack(side="left", padx=15, pady=10)
 
-        # NEW: Security Warning Label (Hidden by default)
         self.lbl_warning = ctk.CTkLabel(self.stats_frame, text="", text_color="#ff5555", font=("Arial", 12, "bold"))
         self.lbl_warning.pack(side="left", padx=15, pady=10)
 
         self.btn_refresh = ctk.CTkButton(self.stats_frame, text="Refresh", width=80, command=self.refresh_data)
         self.btn_refresh.pack(side="right", padx=10, pady=10)
+
+        self.btn_stage = ctk.CTkButton(self.stats_frame, text="Stage All", width=80, fg_color="#eab308", text_color="black", hover_color="#ca8a04", command=self.on_stage_click)
+        self.btn_stage.pack(side="right", padx=(0, 5), pady=10)
 
         # 2. Context Hint Input
         self.entry_hint = ctk.CTkEntry(self.main_frame, placeholder_text="Optional: Context hint (e.g. 'Fixes login bug')...")
@@ -134,6 +136,11 @@ class GitAICommitApp(ctk.CTk):
         
         self.btn_copy = ctk.CTkButton(self.action_frame, text="Copy to Clipboard", height=40, fg_color="gray", command=self.copy_to_clipboard)
         self.btn_copy.pack(side="right", padx=10)
+
+    def on_stage_click(self):
+        """Stages all files and refreshes the view."""
+        self.logic.stage_changes()
+        self.refresh_data()
 
     def browse_repo(self):
         path = filedialog.askdirectory()

@@ -172,3 +172,7 @@ class AppLogic:
             return "Error: Commit message is empty."
         
         return self.git.commit_with_message(message)
+
+    def stage_changes(self):
+        """Executes git add ."""
+        self.git.stage_all_files()

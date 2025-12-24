@@ -76,3 +76,8 @@ class GitManager:
             # Cleanup temp file
             if os.path.exists(tf_path):
                 os.remove(tf_path)
+        pass # placeholder for context
+
+    def stage_all_files(self) -> str:
+        """Stages all modified and new files (git add .)."""
+        return self._run_command("git add .")
