@@ -80,7 +80,7 @@ class GitAICommitApp(ctk.CTk):
         """Creates the right-hand content area."""
         self.main_frame = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
         self.main_frame.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
-        self.main_frame.grid_rowconfigure(2, weight=1) # Textbox grows
+        self.main_frame.grid_rowconfigure(2, weight=1)
         self.main_frame.grid_columnconfigure(0, weight=1)
 
         # 1. Stats Header
@@ -92,6 +92,10 @@ class GitAICommitApp(ctk.CTk):
         
         self.lbl_tokens = ctk.CTkLabel(self.stats_frame, text="Tokens: 0")
         self.lbl_tokens.pack(side="left", padx=15, pady=10)
+
+        # NEW: Security Warning Label (Hidden by default)
+        self.lbl_warning = ctk.CTkLabel(self.stats_frame, text="", text_color="#ff5555", font=("Arial", 12, "bold"))
+        self.lbl_warning.pack(side="left", padx=15, pady=10)
 
         self.btn_refresh = ctk.CTkButton(self.stats_frame, text="Refresh", width=80, command=self.refresh_data)
         self.btn_refresh.pack(side="right", padx=10, pady=10)
@@ -130,11 +134,26 @@ class GitAICommitApp(ctk.CTk):
             self.txt_output.insert("0.0", "Error: The selected folder is not a git repository.")
             return
 
+        # Update Stats
         file_count = len(data["files"])
         self.lbl_files_count.configure(text=f"Files: {file_count}", text_color=("black", "white"))
+        self.lbl_tokens.configure(text=f"Est. Tokens: ~{data['token_count']}")
+
+        # Update Security Warning
+        if data["warnings"]:
+            warn_text = f"⚠️ SENSITIVE FILE: {data['warnings'][0]}"
+            self.lbl_warning.configure(text=warn_text)
+        else:
+            self.lbl_warning.configure(text="")
+
+        # Debug Preview (Updated to show what we filtered)
+        preview = f"Repo: {data['repo_name']}\n"
+        if data['lockfiles_excluded']:
+            preview += f"Excluded Lockfiles: {data['lockfiles_excluded']}\n"
         
-        # Debug preview in textbox
-        preview = f"Repo: {data['repo_name']}\nFiles: {data['files']}\n\nDiff Len: {len(data['diff_text'])} chars"
+        preview += f"\n--- Diff Preview ({len(data['diff_text'])} chars) ---\n"
+        preview += data['diff_text'][:1000] + ("..." if len(data['diff_text']) > 1000 else "")
+        
         self.txt_output.delete("0.0", "end")
         self.txt_output.insert("0.0", preview)
 

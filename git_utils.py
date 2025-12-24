@@ -40,9 +40,21 @@ class GitManager:
             return []
         return output.splitlines()
 
-    def get_staged_diff(self) -> str:
-        """Returns the full raw diff of staged changes."""
-        return self._run_command("git diff --cached")
+    def get_staged_diff(self, exclude_files: List[str] = None) -> str:
+        """
+        Returns the diff. Supports excluding specific files via git pathspecs.
+        Example: git diff --cached -- . ":!package-lock.json"
+        """
+        cmd = ["git", "diff", "--cached", "--", "."]
+        
+        if exclude_files:
+            for file in exclude_files:
+                # Git pathspec to exclude a file is ":!filename"
+                cmd.append(f":!{file}")
+
+        # specific join for list command
+        full_cmd = " ".join(cmd)
+        return self._run_command(full_cmd)
 
     def get_recent_history(self, n: int = 10) -> str:
         """Returns the last n commit messages for context."""
