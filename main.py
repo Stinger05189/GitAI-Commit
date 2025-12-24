@@ -5,6 +5,8 @@
 The main entry point and GUI implementation using CustomTkinter.
 """
 
+
+import threading
 import customtkinter as ctk
 import tkinter.filedialog as filedialog
 from app_logic import AppLogic
@@ -55,10 +57,16 @@ class GitAICommitApp(ctk.CTk):
 
         # Model Selection
         ctk.CTkLabel(self.sidebar_frame, text="Model:", anchor="w").grid(row=3, column=0, padx=20, pady=(10, 0), sticky="w")
-        self.option_model = ctk.CTkOptionMenu(
+        
+        self.option_model = ctk.CTkComboBox(
             self.sidebar_frame, 
             variable=self.var_model,
-            values=["mistralai/mistral-7b-instruct", "openai/gpt-4o-mini", "anthropic/claude-3-haiku"],
+            values=[
+                "mistralai/mistral-7b-instruct", 
+                "openai/gpt-4o-mini", 
+                "anthropic/claude-3-haiku", 
+                "google/gemini-flash-1.5"
+            ],
             command=lambda v: self.logic.save_setting("selected_model", v)
         )
         self.option_model.grid(row=4, column=0, padx=20, pady=(5, 10), sticky="ew")
@@ -74,6 +82,10 @@ class GitAICommitApp(ctk.CTk):
 
         # Commit Button (Bottom of Sidebar)
         self.btn_commit = ctk.CTkButton(self.sidebar_frame, text="Commit Changes", fg_color="green", state="disabled")
+        self.btn_commit.grid(row=9, column=0, padx=20, pady=20, sticky="ew")
+
+        # UPDATE: Connect command to self.on_commit_click
+        self.btn_commit = ctk.CTkButton(self.sidebar_frame, text="Commit Changes", fg_color="green", state="disabled", command=self.on_commit_click)
         self.btn_commit.grid(row=9, column=0, padx=20, pady=20, sticky="ew")
 
     def create_main_area(self):
@@ -112,10 +124,10 @@ class GitAICommitApp(ctk.CTk):
         self.action_frame = ctk.CTkFrame(self.main_frame, height=50, fg_color="transparent")
         self.action_frame.grid(row=3, column=0, sticky="ew")
         
-        self.btn_generate = ctk.CTkButton(self.action_frame, text="Generate Message", height=40)
+        self.btn_generate = ctk.CTkButton(self.action_frame, text="Generate Message", height=40, command=self.on_generate_click)
         self.btn_generate.pack(side="right")
         
-        self.btn_copy = ctk.CTkButton(self.action_frame, text="Copy to Clipboard", height=40, fg_color="gray")
+        self.btn_copy = ctk.CTkButton(self.action_frame, text="Copy to Clipboard", height=40, fg_color="gray", command=self.copy_to_clipboard)
         self.btn_copy.pack(side="right", padx=10)
 
     def browse_repo(self):
@@ -152,10 +164,85 @@ class GitAICommitApp(ctk.CTk):
             preview += f"Excluded Lockfiles: {data['lockfiles_excluded']}\n"
         
         preview += f"\n--- Diff Preview ({len(data['diff_text'])} chars) ---\n"
-        preview += data['diff_text'][:1000] + ("..." if len(data['diff_text']) > 1000 else "")
+        
+        preview += data['diff_text'][:5000] + ("..." if len(data['diff_text']) > 5000 else "")
         
         self.txt_output.delete("0.0", "end")
         self.txt_output.insert("0.0", preview)
+
+    def on_generate_click(self):
+        """UI Handler for generation button."""
+        # Disable button to prevent double-click
+        self.btn_generate.configure(state="disabled", text="Generating...")
+        self.txt_output.delete("0.0", "end")
+        self.txt_output.insert("0.0", "Thinking...")
+
+        # Get inputs
+        hint = self.entry_hint.get()
+        model = self.var_model.get()
+
+        self.logic.save_setting("selected_model", model)
+
+        # Start thread
+        thread = threading.Thread(target=self._run_generation_thread, args=(hint, model))
+        thread.start()
+
+    def on_commit_click(self):
+        """Handler for the actual git commit action."""
+        # 1. Get text from editable box
+        message = self.txt_output.get("0.0", "end").strip()
+        
+        if not message:
+            return
+
+        # 2. Disable UI during operation
+        self.btn_commit.configure(state="disabled", text="Committing...")
+        
+        # 3. Perform Commit (can be fast, but good to thread if hooks are slow)
+        # For simplicity in this lightweight app, we run blocking, but wrapping in thread is safer for big repos.
+        result = self.logic.finalize_commit(message)
+
+        # 4. Handle Result
+        if "main" in result or "master" in result or "[" in result: 
+            # Git usually outputs "[branch sha] Message" on success
+            self.txt_output.delete("0.0", "end")
+            self.txt_output.insert("0.0", f"SUCCESS:\n{result}")
+            
+            # 5. Cleanup UI State
+            self.entry_hint.delete(0, "end") # Clear the hint
+            self.lbl_files_count.configure(text="Files: 0") # Reset count immediately visually
+            
+            # 6. Auto-refresh after 1.5 seconds to show clean state
+            self.after(1500, self.refresh_data)
+        else:
+            # Likely an error (e.g. pre-commit hook failed)
+            self.txt_output.delete("0.0", "end")
+            self.txt_output.insert("0.0", f"ERROR / GIT OUTPUT:\n{result}")
+        
+        # Reset button
+        self.btn_commit.configure(state="disabled", text="Commit Changes")
+
+    def _run_generation_thread(self, hint, model):
+        """Worker thread for API call."""
+        result = self.logic.generate_commit_message(hint, model)
+        # Schedule UI update on main thread
+        self.after(0, lambda: self._finish_generation(result))
+
+    def _finish_generation(self, result):
+        """Called on main thread when API returns."""
+        self.txt_output.delete("0.0", "end")
+        self.txt_output.insert("0.0", result)
+        
+        # Re-enable button
+        self.btn_generate.configure(state="normal", text="Generate Message")
+        
+        # Enable commit button if result is valid
+        if not result.startswith("Error"):
+            self.btn_commit.configure(state="normal")
+
+    def copy_to_clipboard(self):
+        self.clipboard_clear()
+        self.clipboard_append(self.txt_output.get("0.0", "end").strip())
 
 if __name__ == "__main__":
     app = GitAICommitApp()

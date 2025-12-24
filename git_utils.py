@@ -1,10 +1,5 @@
 # git_utils.py
-# Copyright (c) 2025 GitAI-Commit. All rights reserved.
-
-"""
-This module handles all subprocess interactions with the git client.
-"""
-
+import tempfile # NEW IMPORT
 import subprocess
 import os
 from typing import List
@@ -59,3 +54,25 @@ class GitManager:
     def get_recent_history(self, n: int = 10) -> str:
         """Returns the last n commit messages for context."""
         return self._run_command(f'git log -n {n} --pretty=format:"%ad - %s"')
+
+    def commit_with_message(self, message: str) -> str:
+        """
+        Commits staged changes using the provided message.
+        Uses a temp file to handle special characters/newlines safely.
+        """
+        # Create a temporary file to store the commit message
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, encoding='utf-8') as tf:
+            tf.write(message)
+            tf_path = tf.name
+
+        try:
+            # Use -F to read message from file
+            # usage of shell=True in _run_command requires careful string handling,
+            # so we manually construct the command string with the file path.
+            cmd = f'git commit -F "{tf_path}"'
+            result = self._run_command(cmd)
+            return result
+        finally:
+            # Cleanup temp file
+            if os.path.exists(tf_path):
+                os.remove(tf_path)

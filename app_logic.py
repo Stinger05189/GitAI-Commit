@@ -8,6 +8,7 @@ The Controller module bridging the UI, Config, and Git logic.
 import re
 import tiktoken
 from typing import List, Dict, Any
+from openai import OpenAI  # NEW IMPORT
 from git_utils import GitManager
 from config_manager import ConfigManager
 
@@ -41,7 +42,7 @@ class AppLogic:
 
         # 1. Get List of Files
         all_files = self.git.get_staged_files()
-        
+
         # 2. Identify Lockfiles & Security Risks
         found_lockfiles = [f for f in all_files if f in self.lockfiles]
         security_warnings = self._scan_for_secrets(all_files)
@@ -85,6 +86,75 @@ class AppLogic:
         except Exception:
             return 0
 
+    def generate_commit_message(self, hint: str, model: str) -> str:
+        """Constructs prompt and calls OpenRouter API."""
+        
+        # 1. Validation
+        api_key = self.config.get("api_key")
+        if not api_key:
+            return "Error: API Key is missing. Please add it in the settings."
+
+        # 2. Refresh data
+        data = self.load_repo_data()
+        if "error" in data:
+            return f"Error: {data['error']}"
+        
+        if not data["diff_text"]:
+            return "Error: No staged changes to commit."
+
+        # 3. Construct Prompts (IMPROVED)
+        system_prompt = (
+            "You are a senior developer and git expert. You write commit messages that strictly adhere to the 'Conventional Commits' specification.\n\n"
+            "## RULES\n"
+            "1. **Header Format**: <type>(<scope>): <subject>\n"
+            "   - Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.\n"
+            "   - Scope: Optional, based on file names/modules (e.g., 'auth', 'ui', 'api').\n"
+            "   - Subject: Imperative mood ('add' not 'added'), lowercase, max 50 chars, no period.\n"
+            "2. **Body**:\n"
+            "   - Required for non-trivial changes.\n"
+            "   - Wrap lines strictly at 72 characters.\n"
+            "   - Use bullet points (-) for listing specific changes.\n"
+            "   - Focus on the 'why' and 'what', not just code translation.\n"
+            "3. **Output**:\n"
+            "   - Return ONLY the raw message. No Markdown code blocks (```). No conversational filler.\n"
+        )
+
+        user_content = (
+            f"## CONTEXT HINT (User Intent - Priority High)\n{hint if hint else 'None'}\n\n"
+            f"## RECENT HISTORY (For style consistency)\n{data['history']}\n\n"
+            f"## STAGED FILE LIST\n{str(data['files'])}\n\n"
+            f"## CODE DIFF\n{data['diff_text']}"
+        )
+
+        # 4. API Call
+        try:
+            client = OpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=api_key,
+            )
+
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content}
+                ],
+            )
+            
+            raw_msg = response.choices[0].message.content.strip()
+            return self._clean_output(raw_msg)
+
+        except Exception as e:
+            return f"API Error: {str(e)}"
+
+    def _clean_output(self, text: str) -> str:
+        """Removes quotes and markdown wrappers often added by LLMs."""
+        # Remove surrounding quotes if present
+        text = text.strip('"\'')
+        # Remove markdown code blocks
+        text = text.replace("```git commit", "").replace("```", "").strip()
+        return text
+
     def save_setting(self, key: str, value: str):
         """Pass-through to config manager."""
         self.config.save_config(key, value)
@@ -95,3 +165,10 @@ class AppLogic:
             self.save_setting("last_repo_path", new_path)
             return True
         return False
+
+    def finalize_commit(self, message: str) -> str:
+        """Executes the commit and returns the git output."""
+        if not message.strip():
+            return "Error: Commit message is empty."
+        
+        return self.git.commit_with_message(message)
