@@ -5,7 +5,7 @@
 The main entry point and GUI implementation using CustomTkinter.
 """
 
-
+import os
 import threading
 import customtkinter as ctk
 import tkinter.filedialog as filedialog
@@ -23,6 +23,11 @@ class GitAICommitApp(ctk.CTk):
         # Window Setup
         self.title("AI Commit Generator")
         self.geometry("900x700")
+
+        # We check if the file exists to prevent crashing during development if file is missing
+        icon_path = os.path.join(os.path.dirname(__file__), "app_icon.ico")
+        if os.path.exists(icon_path):
+            self.iconbitmap(icon_path)
         
         # Grid Layout: 2 Columns
         # Column 0: Sidebar (Settings/Controls), Column 1: Main Content

@@ -1,3 +1,30 @@
-.venv/
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+venv/
+ENV/
+
+# PyInstaller / Distribution
+# These are generated when you build your .exe
+build/
+dist/
+*.spec
+
+# Logs and temporary files
+*.log
+.pytest_cache/
+.vscode/
+.idea/
+
+# Local configuration files
+# (If you create a .env or local_config.py later, keep them out of Git)
+.env
+config_local.json
+
+# OS generated files
+.DS_Store
+Thumbs.db
