@@ -1,5 +1,7 @@
 # GitAI-Commit
 
+<a href="https://www.buymeacoffee.com/philipquicz" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 **GitAI-Commit** is a lightweight, modern desktop GUI application that automates the generation of semantic, Conventional Commit messages using Large Language Models (LLMs) via the OpenRouter API.
 
 It analyzes your staged git changes, filters out noise (like lockfiles), scans for security risks (secrets), and prompts an AI to write a professional commit message for you.
@@ -25,7 +27,7 @@ It analyzes your staged git changes, filters out noise (like lockfiles), scans f
 ### 1. Clone & Setup
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/git-ai-commit.git
+git clone https://github.com/Stinger05189/GitAI-Commit.git
 cd git-ai-commit
 
 # Create a virtual environment

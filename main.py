@@ -6,14 +6,30 @@ The main entry point and GUI implementation using CustomTkinter.
 """
 
 import os
+import sys
 import threading
+import webbrowser
 import customtkinter as ctk
 import tkinter.filedialog as filedialog
 from app_logic import AppLogic
 
+# --- CONFIGURATION ---
+APP_VERSION = "v1.0.0"
+BUY_ME_COFFEE_URL = "https://www.buymeacoffee.com/philipquicz"
+
 # Theme Configuration
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 class GitAICommitApp(ctk.CTk):
     def __init__(self):
@@ -21,11 +37,11 @@ class GitAICommitApp(ctk.CTk):
         self.logic = AppLogic()
 
         # Window Setup
-        self.title("AI Commit Generator")
-        self.geometry("900x700")
+        self.title(f"GitAI Commit - {APP_VERSION}")
+        self.geometry("900x750") # Increased height slightly for new buttons
 
-        # We check if the file exists to prevent crashing during development if file is missing
-        icon_path = os.path.join(os.path.dirname(__file__), "app_icon.ico")
+        # Icon Setup (using resource_path for .exe compatibility)
+        icon_path = resource_path("app_icon.ico")
         if os.path.exists(icon_path):
             self.iconbitmap(icon_path)
         
@@ -85,13 +101,31 @@ class GitAICommitApp(ctk.CTk):
         self.lbl_path = ctk.CTkLabel(self.sidebar_frame, textvariable=self.var_repo_path, font=("Arial", 10), text_color="gray")
         self.lbl_path.grid(row=7, column=0, padx=20, pady=0, sticky="ew")
 
-        # Commit Button (Bottom of Sidebar)
-        self.btn_commit = ctk.CTkButton(self.sidebar_frame, text="Commit Changes", fg_color="green", state="disabled")
-        self.btn_commit.grid(row=9, column=0, padx=20, pady=20, sticky="ew")
+        # --- BOTTOM ACTIONS ---
 
-        # UPDATE: Connect command to self.on_commit_click
+        # Commit Button
         self.btn_commit = ctk.CTkButton(self.sidebar_frame, text="Commit Changes", fg_color="green", state="disabled", command=self.on_commit_click)
-        self.btn_commit.grid(row=9, column=0, padx=20, pady=20, sticky="ew")
+        self.btn_commit.grid(row=9, column=0, padx=20, pady=(20, 10), sticky="ew")
+
+        # Funding / Support Button
+        self.btn_support = ctk.CTkButton(
+            self.sidebar_frame, 
+            text="☕ Buy Me A Coffee", 
+            fg_color="transparent", 
+            border_width=1, 
+            text_color=("gray10", "#DCE4EE"), # Adaptive text color
+            command=lambda: webbrowser.open(BUY_ME_COFFEE_URL)
+        )
+        self.btn_support.grid(row=10, column=0, padx=20, pady=(0, 10), sticky="ew")
+
+        # Version Label
+        self.lbl_version = ctk.CTkLabel(
+            self.sidebar_frame, 
+            text=f"Version {APP_VERSION}", 
+            font=("Arial", 10), 
+            text_color="gray50"
+        )
+        self.lbl_version.grid(row=11, column=0, padx=20, pady=(0, 20))
 
     def create_main_area(self):
         """Creates the right-hand content area."""
@@ -170,7 +204,7 @@ class GitAICommitApp(ctk.CTk):
         else:
             self.lbl_warning.configure(text="")
 
-        # Debug Preview (Updated to show what we filtered)
+        # Debug Preview
         preview = f"Repo: {data['repo_name']}\n"
         if data['lockfiles_excluded']:
             preview += f"Excluded Lockfiles: {data['lockfiles_excluded']}\n"
@@ -210,13 +244,11 @@ class GitAICommitApp(ctk.CTk):
         # 2. Disable UI during operation
         self.btn_commit.configure(state="disabled", text="Committing...")
         
-        # 3. Perform Commit (can be fast, but good to thread if hooks are slow)
-        # For simplicity in this lightweight app, we run blocking, but wrapping in thread is safer for big repos.
+        # 3. Perform Commit
         result = self.logic.finalize_commit(message)
 
         # 4. Handle Result
         if "main" in result or "master" in result or "[" in result: 
-            # Git usually outputs "[branch sha] Message" on success
             self.txt_output.delete("0.0", "end")
             self.txt_output.insert("0.0", f"SUCCESS:\n{result}")
             
@@ -224,10 +256,9 @@ class GitAICommitApp(ctk.CTk):
             self.entry_hint.delete(0, "end") # Clear the hint
             self.lbl_files_count.configure(text="Files: 0") # Reset count immediately visually
             
-            # 6. Auto-refresh after 1.5 seconds to show clean state
+            # 6. Auto-refresh after 1.5 seconds
             self.after(1500, self.refresh_data)
         else:
-            # Likely an error (e.g. pre-commit hook failed)
             self.txt_output.delete("0.0", "end")
             self.txt_output.insert("0.0", f"ERROR / GIT OUTPUT:\n{result}")
         
