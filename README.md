@@ -4,16 +4,28 @@
 
 **GitAI-Commit** is a lightweight, modern desktop GUI application that automates the generation of semantic, Conventional Commit messages using Large Language Models (LLMs) via the OpenRouter API.
 
-It analyzes your staged git changes, filters out noise (like lockfiles), scans for security risks (secrets), and prompts an AI to write a professional commit message for you.
+## 📸 Visualizing the Workflow
+
+| 🛡️ Security Guardrails | 📂 Smart Filtering |
+| :--- | :--- |
+| ![Security Warning](assets/security-guardrail.png) | ![Diff Preview](assets/diff-preview.png) |
+| *Automatically detects `.env` and secrets before they reach the AI.* | *Filters out noise (like lockfiles) to show only relevant changes.* |
+
+| 🚀 Large Diff Handling | ✨ AI Generation |
+| :--- | :--- |
+| ![Bulk Changes](assets/large-diff-summary.png) | ![Generated Message](assets/ai-generation.png) |
+| *Summarizes changes automatically when the diff is too large for a full preview.* | *Produces professional, semantic commit messages in seconds.* |
+
+---
 
 ## ✨ Features
 
-*   **GUI Interface:** Clean, dark-mode interface built with `customtkinter`.
-*   **Model Agnostic:** Works with any model on OpenRouter (GPT-4o, Claude 3.5 Sonnet, Mistral, Llama 3, etc.).
-*   **Smart Context:** automatically reads `git diff`, staged files, and recent commit history to match your project's style.
-*   **Token Optimization:** automatically filters out massive lockfiles (`package-lock.json`, `yarn.lock`) to save API costs.
-*   **Security Guardrails:** warns you if you attempt to stage sensitive files like `.env` or private keys.
-*   **Workflow Tools:** "Stage All" button, editable output preview, and direct "Commit" action.
+* **GUI Interface:** Clean, dark-mode interface built with `customtkinter`.
+* **Model Agnostic:** Works with any model on OpenRouter (GPT-4o, Claude 3.5, Llama 3, etc.).
+* **Security Guardrails:** Warns you if you attempt to stage sensitive files like `.env` or private keys.
+* **Token Optimization:** Automatically filters out massive lockfiles (`package-lock.json`, `yarn.lock`) to save API costs.
+* **Smart Context:** Reads `git diff` and recent history to match your project's commit style.
+* **Workflow Tools:** "Stage All" button, editable output preview, and direct "Commit" action.
 
 ---
 
