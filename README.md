@@ -8,13 +8,13 @@
 
 | 🛡️ Security Guardrails | 📂 Smart Filtering |
 | :--- | :--- |
-| ![Security Warning](assets/security-guardrail.png) | ![Diff Preview](assets/diff-preview.png) |
-| *Automatically detects `.env` and secrets before they reach the AI.* | *Filters out noise (like lockfiles) to show only relevant changes.* |
+| <a href="assets/security-guardrail.png"><img src="assets/security-guardrail.png" width="400"></a> | <a href="assets/diff-preview.png"><img src="assets/diff-preview.png" width="400"></a> |
+| *Automatically detects `.env` and secrets.* | *Filters out noise to show only relevant changes.* |
 
 | 🚀 Large Diff Handling | ✨ AI Generation |
 | :--- | :--- |
-| ![Bulk Changes](assets/large-diff-summary.png) | ![Generated Message](assets/ai-generation.png) |
-| *Summarizes changes automatically when the diff is too large for a full preview.* | *Produces professional, semantic commit messages in seconds.* |
+| <a href="assets/large-diff-summary.png"><img src="assets/large-diff-summary.png" width="400"></a> | <a href="assets/ai-generation.png"><img src="assets/ai-generation.png" width="400"></a> |
+| *Summarizes changes when the diff is too large.* | *Produces professional, semantic commit messages.* |
 
 ---
 
